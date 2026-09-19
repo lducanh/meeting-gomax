@@ -1,0 +1,862 @@
+:root {
+  --blue: #ef482f;
+  --gomax-red: #ef482f;
+  --gomax-red-hover: #dc3d27;
+  --gomax-soft: #fff1ed;
+  --gomax-soft-strong: #ffe8e1;
+  background: #fbfaf8;
+}
+
+/* Keep the canvas warm and the current date subtly distinct from white. */
+.day-column.today-column,
+.day-column.selected-day,
+.month-cell.today {
+  background-color: #fafafa;
+}
+
+.month-cell:hover {
+  background-color: #fafafa;
+}
+
+.brand-logo {
+  height: 34px;
+  max-width: 142px;
+}
+
+.product-name {
+  color: #1f2329;
+}
+
+.avatar-top {
+  overflow: hidden;
+  padding: 0;
+  background: #fff;
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1f2329;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.avatar-top img,
+.footer-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.footer-avatar {
+  overflow: hidden;
+  padding: 0;
+  background: #fff;
+}
+
+.create-button,
+.toolbar-add,
+.save-button {
+  background: var(--gomax-red);
+}
+
+.create-button:hover,
+.toolbar-add:hover,
+.save-button:hover {
+  background: var(--gomax-red-hover);
+}
+
+.create-button {
+  box-shadow: 0 1px 2px #ef482f2b;
+}
+
+.mini-day.selected,
+.day-heading.today .day-number,
+.month-cell.today .month-date {
+  background: var(--gomax-red);
+}
+
+.mini-day.today:not(.selected) {
+  color: var(--gomax-red);
+}
+
+.mini-day.has-meeting:after,
+.legend-blue {
+  background: var(--gomax-red);
+}
+
+.legend-purple {
+  background: #f29b58;
+}
+
+.room-item {
+  background: #fff5f1;
+}
+
+.room-icon,
+.banner-room-icon {
+  color: var(--gomax-red);
+  background: var(--gomax-soft);
+}
+
+.today-button:hover {
+  border-color: var(--gomax-red);
+  color: var(--gomax-red);
+}
+
+.meeting-card.blue {
+  border-color: var(--gomax-red);
+  background: var(--gomax-soft);
+  color: #853728;
+}
+
+.month-event.blue {
+  background: var(--gomax-soft);
+  color: #853728;
+}
+
+.meeting-card:hover {
+  box-shadow: 0 3px 9px #71271820;
+}
+
+.day-column.drop-target {
+  background-color: #fff7f4;
+}
+
+.month-cell.drop-target {
+  background: #fff3ee;
+  outline-color: #f2ad9e;
+}
+
+.time-now-line,
+.time-now-line:before {
+  background: var(--gomax-red);
+}
+
+.form-field input:focus,
+.form-field textarea:focus {
+  border-color: #f1a393;
+  box-shadow: 0 0 0 3px #ef482f1c;
+}
+
+.edit-button {
+  color: var(--gomax-red);
+}
+
+.edit-button:hover {
+  background: var(--gomax-soft);
+  border-color: #f3b9ad;
+}
+
+.delete-button {
+  color: #ce3928;
+}
+
+.empty-illustration {
+  color: var(--gomax-red);
+  background: var(--gomax-soft);
+}
+
+.help-icon {
+  color: var(--gomax-red);
+}
+
+@media (max-width: 760px) {
+  .brand-logo {
+    height: 30px;
+    max-width: 112px;
+  }
+
+  .user-profile {
+    display: flex;
+    margin-left: auto;
+    gap: 7px;
+  }
+
+  .avatar-top {
+    display: grid;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+  }
+}
+
+@media (max-width: 520px) {
+  .brand-logo {
+    height: 28px;
+    max-width: 94px;
+  }
+}
+
+/* Compact, balanced header and quiet line icons. */
+.topbar {
+  gap: 12px;
+}
+
+.brand {
+  flex: 0 0 auto;
+}
+
+.brand-logo {
+  width: auto;
+  height: 32px;
+  max-width: 132px;
+  object-fit: contain;
+}
+
+.topbar-divider {
+  flex: 0 0 1px;
+  height: 22px;
+}
+
+.product-name {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 230px;
+  overflow: hidden;
+  color: #292d33;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .035em;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar-spacer {
+  flex: 1 1 auto;
+  min-width: 8px;
+}
+
+.user-profile {
+  flex: 0 0 auto;
+  margin-left: 0;
+}
+
+.create-plus {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.create-plus svg,
+.toolbar-add .button-icon,
+.icon-button svg,
+.help-icon svg,
+.detail-close svg {
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.create-plus svg {
+  width: 17px;
+  height: 17px;
+}
+
+.toolbar-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.toolbar-add .button-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.icon-button svg {
+  width: 17px;
+  height: 17px;
+}
+
+.icon-button.small svg {
+  width: 14px;
+  height: 14px;
+}
+
+.help-icon svg {
+  width: 15px;
+  height: 15px;
+  stroke-width: 1.45;
+}
+
+.detail-close svg {
+  width: 15px;
+  height: 15px;
+}
+
+.meeting-card.ended,
+.month-event.ended {
+  filter: grayscale(1);
+  opacity: .58;
+}
+
+.month-event {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 760px) {
+  .topbar {
+    gap: 9px;
+  }
+
+  .brand-logo {
+    height: 27px;
+    max-width: 100px;
+  }
+
+  .product-name {
+    max-width: 165px;
+    font-size: 11.5px;
+    letter-spacing: .025em;
+  }
+
+  .topbar-spacer {
+    min-width: 0;
+  }
+
+  .user-profile {
+    gap: 6px;
+  }
+
+  .avatar-top {
+    width: 28px;
+    height: 28px;
+    flex-basis: 28px;
+  }
+}
+
+@media (max-width: 520px) {
+  .topbar {
+    gap: 7px;
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+
+  .brand-logo {
+    height: 24px;
+    max-width: 84px;
+  }
+
+  .topbar-divider {
+    height: 19px;
+  }
+
+  .product-name {
+    max-width: 145px;
+    font-size: 10.5px;
+    letter-spacing: .015em;
+  }
+
+  .user-profile {
+    gap: 5px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 370px) {
+  .product-name {
+    max-width: 124px;
+    font-size: 10px;
+  }
+
+  .user-profile > span {
+    display: none;
+  }
+}
+
+/* Comfortable touch layout across compact phones and larger mobile screens. */
+@media (max-width: 760px) {
+  .main-content {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .calendar-toolbar {
+    gap: 10px;
+  }
+
+  .today-button,
+  .toolbar-add,
+  .view-button {
+    min-height: 40px;
+  }
+
+  .view-switch {
+    min-height: 44px;
+    align-items: center;
+  }
+
+  .date-navigation .icon-button {
+    width: 40px;
+    height: 40px;
+    flex-basis: 40px;
+  }
+
+  .calendar-view {
+    min-width: 0;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  .calendar-panel {
+    overflow: hidden;
+  }
+
+  .meeting-modal {
+    border-radius: 12px;
+  }
+
+  .cancel-button,
+  .save-button,
+  .edit-button,
+  .delete-button {
+    min-height: 40px;
+  }
+}
+
+@media (max-width: 520px) {
+  .main-content {
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+
+  .calendar-toolbar {
+    gap: 9px;
+    padding-top: 13px;
+    padding-bottom: 11px;
+  }
+
+  .toolbar-left {
+    column-gap: 7px;
+  }
+
+  .today-button {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .date-navigation .icon-button {
+    width: 36px;
+    flex-basis: 36px;
+  }
+
+  .toolbar-right {
+    align-items: center;
+  }
+
+  .view-switch {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  .view-button {
+    flex: 1 1 0;
+    min-width: 0;
+    padding-right: 8px;
+    padding-left: 8px;
+  }
+
+  .toolbar-add {
+    flex: 0 0 auto;
+    min-height: 40px;
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+
+  .calendar-panel {
+    min-height: max(360px, calc(100dvh - 290px));
+  }
+
+  .calendar-view {
+    min-height: 360px;
+  }
+
+  .month-calendar {
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .month-grid {
+    grid-template-rows: repeat(6, minmax(88px, auto));
+  }
+
+  .month-cell {
+    padding: 4px 1px;
+    text-align: center;
+  }
+
+  .month-event {
+    display: block;
+    width: 100%;
+    height: 16px;
+    margin: 1px 0;
+    padding: 0 2px;
+    border-radius: 3px;
+    font-size: 7px;
+    line-height: 16px;
+    text-align: left;
+  }
+
+  .month-event-title {
+    display: none;
+  }
+
+  .month-more {
+    padding: 1px;
+    font-size: 8px;
+  }
+
+  .calendar-footer {
+    padding-bottom: 10px;
+    line-height: 1.45;
+  }
+}
+
+@media (max-width: 370px) {
+  .main-content {
+    padding-right: 8px;
+    padding-left: 8px;
+  }
+
+  .toolbar-add {
+    gap: 5px;
+    padding-right: 8px;
+    padding-left: 8px;
+    font-size: 10px;
+  }
+
+  .date-navigation .icon-button {
+    width: 34px;
+    flex-basis: 34px;
+  }
+
+  .month-weekdays span {
+    font-size: 8px;
+  }
+}
+
+@media (hover: none) {
+  .meeting-card:hover,
+  .month-cell:hover,
+  .month-event:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+/* Match the app frame to the opened device viewport; scroll only inside calendars. */
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+.app-shell,
+.workspace,
+.main-content,
+.calendar-toolbar,
+.room-banner,
+.calendar-panel,
+.calendar-view {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.app-shell {
+  width: 100%;
+  overflow-x: clip;
+}
+
+/* Lark-inspired mobile layout with GoMax's quieter warm palette. */
+@media (max-width: 760px) {
+  body {
+    background: #f6f7f8;
+  }
+
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    height: 56px;
+    background: #fff;
+    border-bottom-color: #eceef0;
+    box-shadow: 0 1px 3px #1f232908;
+  }
+
+  .brand-logo {
+    height: 26px;
+    max-width: 92px;
+  }
+
+  .product-name {
+    color: #252a31;
+    font-size: 11.5px;
+    font-weight: 650;
+    letter-spacing: .02em;
+  }
+
+  .main-content {
+    padding: 0 14px 12px;
+  }
+
+  .calendar-toolbar {
+    padding: 15px 0 13px;
+    gap: 11px;
+  }
+
+  .toolbar-heading h1 {
+    color: #24282e;
+    font-size: 18px;
+    font-weight: 650;
+    letter-spacing: -.35px;
+  }
+
+  .toolbar-caption {
+    color: #9298a1;
+    font-size: 11px;
+  }
+
+  .today-button {
+    border-color: #e5e7eb;
+    border-radius: 9px;
+    color: #4b5159;
+    font-size: 12px;
+    font-weight: 550;
+  }
+
+  .date-navigation .icon-button {
+    border-radius: 9px;
+    color: #5e646d;
+  }
+
+  .date-navigation h2 {
+    color: #343940;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .view-switch {
+    background: #eceef0;
+    border-radius: 10px;
+    padding: 4px;
+  }
+
+  .view-button {
+    border-radius: 7px;
+    color: #6d737c;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .view-button.active {
+    color: #24282e;
+    box-shadow: 0 1px 3px #20252c18;
+  }
+
+  .toolbar-add {
+    border-radius: 9px;
+    background: var(--gomax-red);
+    box-shadow: 0 2px 5px #ef482f24;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .room-banner {
+    min-height: 46px;
+    height: auto;
+    flex-basis: auto;
+    margin-bottom: 8px;
+    padding: 0 12px;
+    border: 1px solid #eceef0;
+    border-radius: 11px;
+    background: #fff;
+  }
+
+  .banner-copy {
+    color: #9298a1;
+    font-size: 11px;
+  }
+
+  .banner-copy strong {
+    color: #30353c;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .calendar-panel {
+    border: 1px solid #e9ebee;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 2px 8px #20252c08;
+  }
+
+  .week-header {
+    background: #fff;
+    border-bottom-color: #eceef0;
+  }
+
+  .day-heading .weekday {
+    color: #8e949d;
+    font-weight: 600;
+  }
+
+  .day-heading .day-number {
+    font-weight: 600;
+  }
+
+  .day-column.today-column,
+  .day-column.selected-day {
+    background-color: #fafafa;
+  }
+
+  .meeting-card {
+    border-radius: 8px;
+    box-shadow: 0 1px 3px #61271b0b;
+  }
+
+  .meeting-card strong {
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .meeting-card .meeting-time {
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .meeting-card .meeting-owner {
+    font-size: 10px;
+  }
+
+  .calendar-footer {
+    padding: 9px 2px 12px;
+    color: #8f959e;
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 520px) {
+  .topbar {
+    height: 54px;
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .brand-logo {
+    height: 24px;
+    max-width: 84px;
+  }
+
+  .product-name {
+    max-width: 145px;
+    font-size: 11px;
+  }
+
+  .main-content {
+    padding-right: 11px;
+    padding-left: 11px;
+  }
+
+  .calendar-toolbar {
+    padding-top: 14px;
+    padding-bottom: 12px;
+  }
+
+  .toolbar-heading h1 {
+    font-size: 17px;
+  }
+
+  .toolbar-caption {
+    font-size: 10.5px;
+  }
+
+  .toolbar-right {
+    gap: 8px;
+  }
+
+  .toolbar-add {
+    gap: 6px;
+  }
+
+  .room-banner {
+    min-height: 44px;
+  }
+
+  .calendar-panel {
+    min-height: max(360px, calc(100dvh - 300px));
+  }
+
+  .day-heading .weekday {
+    font-size: 8px;
+  }
+
+  .calendar-footer {
+    gap: 6px;
+    font-size: 9px;
+  }
+}
+
+@media (max-width: 370px) {
+  .topbar {
+    gap: 6px;
+    padding-right: 9px;
+    padding-left: 9px;
+  }
+
+  .product-name {
+    max-width: 124px;
+    font-size: 10.5px;
+  }
+
+  .user-profile {
+    font-size: 10px;
+  }
+
+  .calendar-toolbar {
+    gap: 9px;
+  }
+
+  .toolbar-caption {
+    max-width: 100%;
+    font-size: 10px;
+  }
+
+  .toolbar-add {
+    gap: 4px;
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 760px) {
+  .view-switch {
+    border: 1px solid #e7e9ec;
+    background: #fff;
+  }
+
+  .view-button {
+    background: #fff;
+  }
+
+  .view-button.active {
+    background: #fff;
+    color: var(--gomax-red);
+    box-shadow: 0 1px 3px #1f232914;
+  }
+}
