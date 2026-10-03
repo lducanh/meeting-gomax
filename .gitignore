@@ -1,3 +1,4 @@
 node_modules/
+.env
 data/meetings.json
 .DS_Store

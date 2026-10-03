@@ -1,6 +1,10 @@
 const HOUR_START = 8;
 const HOUR_END = 20;
 const DAY_NAMES = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+// Người/nhóm luôn có sẵn ở tab Họp riêng; các tên khác tự xuất hiện sau lần đặt lịch đầu tiên.
+const DEFAULT_PEOPLE = ['BOD'];
+// Giữ id khớp với ROOMS trong server.js. Lịch cũ chưa có phòng được tính là phòng đầu tiên.
+const ROOMS = [{ id: 'tret', name: 'Phòng Trệt', short: 'Trệt' }, { id: 'tang2', name: 'Phòng Tầng 2', short: 'Tầng 2' }];
 const MONTH_NAMES = ['tháng 1', 'tháng 2', 'tháng 3', 'tháng 4', 'tháng 5', 'tháng 6', 'tháng 7', 'tháng 8', 'tháng 9', 'tháng 10', 'tháng 11', 'tháng 12'];
 
 const state = {
@@ -10,6 +14,9 @@ const state = {
   loading: true,
   miniMonth: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   editingId: null,
+  module: 'room',
+  person: '',
+  room: '',
 };
 
 const ui = {
@@ -23,6 +30,12 @@ const ui = {
   save: document.querySelector('#saveMeeting'),
   toast: document.querySelector('#toast'),
   details: document.querySelector('#meetingDetails'),
+  people: document.querySelector('#people'),
+  peopleOptions: document.querySelector('#peopleOptions'),
+  withField: document.querySelector('#withField'),
+  withInput: document.querySelector('#meetingWith'),
+  roomField: document.querySelector('#roomField'),
+  roomInput: document.querySelector('#meetingRoom'),
 };
 
 function startOfDay(date) { return new Date(date.getFullYear(), date.getMonth(), date.getDate()); }
@@ -36,7 +49,43 @@ function isToday(date) { return dateKey(date) === dateKey(new Date()); }
 function meetingHasEnded(meeting) { return new Date(`${meeting.date}T${meeting.endTime}:00+07:00`).getTime() <= Date.now(); }
 function supportsMeetingDrag() { return window.matchMedia('(hover: hover) and (pointer: fine)').matches; }
 function escapeHtml(value = '') { return String(value).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]); }
-function colorFor() { return 'blue'; }
+function typeOf(meeting) { return meeting.type === 'private' ? 'private' : 'room'; }
+function roomOf(meeting) { return ROOMS.find((room) => room.id === meeting.room) || ROOMS[0]; }
+function meetingClass(meeting) { return typeOf(meeting) === 'room' ? `room-${roomOf(meeting).id}` : ''; }
+function sameName(first = '', second = '') { return first.trim().toLowerCase() === second.trim().toLowerCase(); }
+function minutesAt(column, clientY) { return HOUR_START * 60 + Math.max(0, Math.floor((clientY - column.getBoundingClientRect().top) / hourHeight() * 2) * 30); }
+
+function visibleMeetings() {
+  return state.meetings.filter((meeting) => typeOf(meeting) === state.module && (state.module === 'room'
+    ? !state.room || roomOf(meeting).id === state.room
+    : !state.person || sameName(meeting.withWhom, state.person)));
+}
+
+function peopleList() {
+  const names = [...DEFAULT_PEOPLE];
+  state.meetings.forEach((meeting) => {
+    if (typeOf(meeting) === 'private' && meeting.withWhom && !names.some((name) => sameName(name, meeting.withWhom))) names.push(meeting.withWhom);
+  });
+  return names;
+}
+
+// Xếp các cuộc họp trùng giờ (khác phòng hoặc khác người, khi xem "Tất cả") thành các cột cạnh nhau.
+function assignLanes(meetings) {
+  const placed = [];
+  let group = [];
+  let laneEnds = [];
+  const closeGroup = () => { group.forEach((item) => { item.lanes = laneEnds.length; }); group = []; laneEnds = []; };
+  [...meetings].sort((a, b) => a.startTime.localeCompare(b.startTime)).forEach((meeting) => {
+    if (laneEnds.every((end) => end <= meeting.startTime)) closeGroup();
+    let lane = laneEnds.findIndex((end) => end <= meeting.startTime);
+    if (lane < 0) lane = laneEnds.length;
+    laneEnds[lane] = meeting.endTime;
+    group.push({ meeting, lane });
+    placed.push(group.at(-1));
+  });
+  closeGroup();
+  return placed;
+}
 
 async function loadMeetings() {
   try {
@@ -66,11 +115,28 @@ async function refreshMeetings() {
 }
 
 function render() {
+  renderTabs();
   renderPeriodLabel();
   renderMiniCalendar();
   renderCalendar();
   updateEndedMeetingStyles();
   document.querySelectorAll('.view-button').forEach((button) => button.classList.toggle('active', button.dataset.view === state.view));
+}
+
+function renderTabs() {
+  const upcoming = state.meetings.filter((meeting) => !meetingHasEnded(meeting));
+  document.querySelectorAll('.tab').forEach((tab) => {
+    const active = tab.dataset.module === state.module;
+    tab.classList.toggle('active', active);
+    tab.setAttribute('aria-selected', active);
+    tab.querySelector('.badge').textContent = upcoming.filter((meeting) => typeOf(meeting) === tab.dataset.module).length;
+  });
+  const people = peopleList();
+  if (!people.some((name) => sameName(name, state.person))) state.person = '';
+  ui.people.innerHTML = state.module === 'private'
+    ? `<span class="people-label">Họp với</span>${['', ...people].map((name) => `<button class="chip ${sameName(name, state.person) ? 'active' : ''}" type="button" data-person="${escapeHtml(name)}">${name ? escapeHtml(name) : 'Tất cả'}</button>`).join('')}`
+    : `<span class="people-label">Phòng</span>${[{ id: '', name: 'Tất cả' }, ...ROOMS].map((room) => `<button class="chip ${room.id === state.room ? 'active' : ''}" type="button" data-room="${room.id}">${room.id ? `<i class="chip-dot room-${room.id}"></i>` : ''}${room.name}</button>`).join('')}`;
+  ui.peopleOptions.innerHTML = people.map((name) => `<option value="${escapeHtml(name)}"></option>`).join('');
 }
 
 function updateEndedMeetingStyles() {
@@ -104,7 +170,7 @@ function renderMiniCalendar() {
   const gridStart = mondayOf(first);
   const todayKey = dateKey(new Date());
   const selectedKey = dateKey(state.selectedDate);
-  const meetingDates = new Set(state.meetings.map((meeting) => meeting.date));
+  const meetingDates = new Set(visibleMeetings().map((meeting) => meeting.date));
   ui.miniDays.innerHTML = Array.from({ length: 42 }, (_, index) => {
     const date = addDays(gridStart, index);
     const key = dateKey(date);
@@ -125,37 +191,23 @@ function renderCalendar() {
 function renderTimeGrid(days) {
   const isDayView = days.length === 1;
   const hourPixels = hourHeight();
+  const visible = visibleMeetings();
   const heading = days.map((date, index) => `<div class="day-heading ${isToday(date) ? 'today' : ''} ${dateKey(date) === dateKey(state.selectedDate) && !isToday(date) ? 'selected-day' : ''}"><span class="weekday">${isDayView ? formatDate(date, { weekday: 'long' }) : DAY_NAMES[index]}</span><span class="day-number">${date.getDate()}</span></div>`).join('');
   const labels = Array.from({ length: HOUR_END - HOUR_START + 1 }, (_, index) => `<div class="time-label" style="top:${index * hourPixels}px"><span>${String(HOUR_START + index).padStart(2, '0')}:00</span></div>`).join('');
   const columns = days.map((date) => {
     const key = dateKey(date);
-    const meetings = state.meetings.filter((meeting) => meeting.date === key);
-    const cards = meetings.map((meeting) => {
+    const cards = assignLanes(visible.filter((meeting) => meeting.date === key)).map(({ meeting, lane, lanes }) => {
       const start = toMinutes(meeting.startTime);
       const end = toMinutes(meeting.endTime);
       const top = Math.max(0, (start - HOUR_START * 60) / 60 * hourPixels);
       const height = Math.max(33, (end - start) / 60 * hourPixels - 3);
-      return `<button class="meeting-card ${colorFor(meeting)}" style="top:${top}px;height:${height}px" type="button" draggable="${supportsMeetingDrag()}" data-meeting-id="${escapeHtml(meeting.id)}"><strong>${escapeHtml(meeting.title)}</strong><span class="meeting-time">${escapeHtml(meeting.startTime)} – ${escapeHtml(meeting.endTime)}</span><span class="meeting-owner">${escapeHtml(meeting.organizer)}</span></button>`;
+      return `<button class="meeting-card ${meetingClass(meeting)}" style="top:${top}px;height:${height}px;left:calc(${lane / lanes * 100}% + 3px);width:calc(${100 / lanes}% - 6px)" type="button" draggable="${supportsMeetingDrag()}" data-meeting-id="${escapeHtml(meeting.id)}"><strong>${escapeHtml(meeting.title)}</strong><span class="meeting-time">${escapeHtml(meeting.startTime)} – ${escapeHtml(meeting.endTime)}</span><span class="meeting-owner">${escapeHtml(typeOf(meeting) === 'private' ? `Với ${meeting.withWhom}` : `${roomOf(meeting).short} · ${meeting.organizer}`)}</span></button>`;
     }).join('');
     const now = new Date();
     const currentLine = isToday(date) && now.getHours() >= HOUR_START && now.getHours() < HOUR_END ? `<div class="time-now-line" style="top:${((now.getHours() + now.getMinutes() / 60) - HOUR_START) * hourPixels}px"></div>` : '';
     return `<div class="day-column ${isToday(date) ? 'today-column' : ''} ${dateKey(date) === dateKey(state.selectedDate) ? 'selected-day' : ''}" data-date="${key}">${cards}${currentLine}</div>`;
   }).join('');
-  ui.calendarView.innerHTML = `<div class="${isDayView ? 'day-calendar' : 'week-calendar'}"><div class="week-header"><div class="week-corner"></div>${heading}</div><div class="calendar-scroll"><div class="time-grid"><div class="time-axis">${labels}</div>${columns}</div></div></div>`;
-  ui.calendarView.querySelectorAll('.calendar-scroll').forEach((scroll) => {
-    scroll.addEventListener('click', (event) => {
-      if (event.target.closest('.meeting-card')) return;
-      const column = event.target.closest('.day-column');
-      if (!column) return;
-      const rect = column.getBoundingClientRect();
-      const y = event.clientY - rect.top;
-      const minutes = HOUR_START * 60 + Math.max(0, Math.floor(y / hourPixels * 2) * 30);
-      const start = Math.min(minutes, HOUR_END * 60 - 60);
-      openModal({ date: column.dataset.date, startTime: minutesToTime(start), endTime: minutesToTime(start + 60) });
-    });
-  });
-  const scroll = ui.calendarView.querySelector('.calendar-scroll');
-  if (scroll) scroll.scrollTop = Math.max(0, hourPixels);
+  ui.calendarView.innerHTML = `<div class="${isDayView ? 'day-calendar' : 'week-calendar'}"><div class="week-header"><div class="week-corner"></div>${heading}</div><div class="time-grid"><div class="time-axis">${labels}</div>${columns}</div></div>`;
 }
 
 function renderMonth() {
@@ -163,11 +215,12 @@ function renderMonth() {
   const month = state.selectedDate.getMonth();
   const gridStart = mondayOf(new Date(year, month, 1));
   const todayKey = dateKey(new Date());
+  const visible = visibleMeetings();
   const cells = Array.from({ length: 42 }, (_, index) => {
     const date = addDays(gridStart, index);
     const key = dateKey(date);
-    const meetings = state.meetings.filter((meeting) => meeting.date === key).sort((a, b) => a.startTime.localeCompare(b.startTime));
-    const events = meetings.slice(0, 3).map((meeting) => `<button class="month-event ${colorFor(meeting)}" type="button" draggable="${supportsMeetingDrag()}" data-meeting-id="${escapeHtml(meeting.id)}"><span class="month-event-time">${escapeHtml(meeting.startTime)}–${escapeHtml(meeting.endTime)}</span><span class="month-event-title"> · ${escapeHtml(meeting.title)}</span></button>`).join('');
+    const meetings = visible.filter((meeting) => meeting.date === key).sort((a, b) => a.startTime.localeCompare(b.startTime));
+    const events = meetings.slice(0, 3).map((meeting) => `<button class="month-event ${meetingClass(meeting)}" type="button" draggable="${supportsMeetingDrag()}" data-meeting-id="${escapeHtml(meeting.id)}"><span class="month-event-time">${escapeHtml(meeting.startTime)}–${escapeHtml(meeting.endTime)}</span><span class="month-event-title"> · ${escapeHtml(meeting.title)}</span></button>`).join('');
     const more = meetings.length > 3 ? `<span class="month-more">+${meetings.length - 3} cuộc họp</span>` : '';
     return `<div class="month-cell ${date.getMonth() !== month ? 'outside' : ''} ${key === todayKey ? 'today' : ''}" role="gridcell" tabindex="0" data-date="${key}"><span class="month-date">${date.getDate()}</span>${events}${more}</div>`;
   }).join('');
@@ -182,8 +235,16 @@ function openModal(options = {}) {
   ui.form.reset();
   ui.error.hidden = true;
   const meeting = options.meeting;
+  const isPrivate = (meeting ? typeOf(meeting) : state.module) === 'private';
   state.editingId = meeting?.id || null;
-  document.querySelector('#modalTitle').textContent = meeting ? 'Chỉnh sửa cuộc họp' : 'Tạo cuộc họp';
+  ui.form.elements.type.value = isPrivate ? 'private' : 'room';
+  ui.withField.hidden = !isPrivate;
+  ui.withInput.required = isPrivate;
+  ui.roomField.hidden = isPrivate;
+  ui.roomInput.value = meeting ? roomOf(meeting).id : state.room || ROOMS[0].id;
+  ui.withInput.value = meeting?.withWhom || state.person;
+  document.querySelector('#modalTitle').textContent = meeting ? 'Chỉnh sửa cuộc họp' : isPrivate ? 'Đặt lịch họp riêng' : 'Đặt phòng họp';
+  document.querySelector('#modalSubtitle').textContent = isPrivate ? 'Họp riêng · không dùng phòng họp chung' : 'Phòng họp · GoMax Digital';
   ui.save.querySelector('span').textContent = meeting ? 'Lưu thay đổi' : 'Lưu cuộc họp';
   document.querySelector('#meetingTitle').value = meeting?.title || '';
   document.querySelector('#meetingDate').value = meeting?.date || options.date || dateKey(state.selectedDate);
@@ -207,7 +268,7 @@ async function saveMeeting(event) {
   ui.error.hidden = true;
   const formData = new FormData(ui.form);
   const payload = {
-    title: formData.get('title'), date: formData.get('date'), startTime: formData.get('startTime'), endTime: formData.get('endTime'), organizer: formData.get('organizer'),
+    type: formData.get('type'), room: formData.get('room'), withWhom: formData.get('withWhom'), title: formData.get('title'), date: formData.get('date'), startTime: formData.get('startTime'), endTime: formData.get('endTime'), organizer: formData.get('organizer'),
     attendees: String(formData.get('attendees') || '').split(',').map((name) => name.trim()).filter(Boolean), notes: formData.get('notes'),
   };
   if (payload.startTime >= payload.endTime) {
@@ -223,11 +284,14 @@ async function saveMeeting(event) {
     if (state.editingId) state.meetings = state.meetings.map((meeting) => meeting.id === result.id ? result : meeting);
     else state.meetings.push(result);
     state.meetings.sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
+    state.module = typeOf(result);
+    if (state.person && !sameName(state.person, result.withWhom)) state.person = '';
+    if (state.room && state.room !== result.room) state.room = '';
     state.selectedDate = parseDate(result.date);
     state.miniMonth = new Date(state.selectedDate.getFullYear(), state.selectedDate.getMonth(), 1);
     closeModal();
     render();
-    showToast(state.editingId ? 'Đã cập nhật cuộc họp.' : 'Đã thêm cuộc họp vào lịch chung.');
+    showToast(state.editingId ? 'Đã cập nhật cuộc họp.' : 'Đã thêm cuộc họp vào lịch.');
     state.editingId = null;
   } catch {
     showFormError('Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.');
@@ -247,21 +311,21 @@ function openMeetingDetails(id, anchor) {
   const dateLabel = formatDate(date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   ui.details.innerHTML = `
     <button class="icon-button detail-close" type="button" aria-label="Đóng"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15"/></svg></button>
-    <div class="detail-kicker">PHÒNG HỌP CHUNG</div>
+    <div class="detail-kicker">${typeOf(meeting) === 'private' ? `Họp riêng với ${escapeHtml(meeting.withWhom)}` : roomOf(meeting).name}</div>
     <div class="detail-title">${escapeHtml(meeting.title)}</div>
     <div class="detail-line">
-      <svg class="detail-icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M10 6v4l3 2"/></svg>
+      <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M10 6v4l3 2"/></svg>
       <span>${dateLabel}<br>${escapeHtml(meeting.startTime)} – ${escapeHtml(meeting.endTime)}</span>
     </div>
     <div class="detail-line">
-      <svg class="detail-icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="6.5" r="3"/><path d="M4 17c.4-3 2.4-4.5 6-4.5s5.6 1.5 6 4.5"/></svg>
+      <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="6.5" r="3"/><path d="M4 17c.4-3 2.4-4.5 6-4.5s5.6 1.5 6 4.5"/></svg>
       <span>Đăng ký bởi ${escapeHtml(meeting.organizer)}</span>
     </div>
-    ${meeting.attendees?.length ? `<div class="detail-line"><svg class="detail-icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="7" cy="7" r="2.5"/><path d="M2.5 16c.3-2.3 1.8-3.5 4.5-3.5s4.2 1.2 4.5 3.5m2-10.5a2.5 2.5 0 0 1 0 5m1 2c1.8.5 2.8 1.7 3 3"/></svg><span>${meeting.attendees.map(escapeHtml).join(', ')}</span></div>` : ''}
-    ${meeting.notes ? `<div class="detail-line detail-notes"><svg class="detail-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 5h12M4 10h12M4 15h8"/></svg><span>${escapeHtml(meeting.notes)}</span></div>` : ''}
+    ${meeting.attendees?.length ? `<div class="detail-line"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="7" cy="7" r="2.5"/><path d="M2.5 16c.3-2.3 1.8-3.5 4.5-3.5s4.2 1.2 4.5 3.5m2-10.5a2.5 2.5 0 0 1 0 5m1 2c1.8.5 2.8 1.7 3 3"/></svg><span>${meeting.attendees.map(escapeHtml).join(', ')}</span></div>` : ''}
+    ${meeting.notes ? `<div class="detail-line detail-notes"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 5h12M4 10h12M4 15h8"/></svg><span>${escapeHtml(meeting.notes)}</span></div>` : ''}
     <div class="detail-actions">
-      <button class="edit-button" type="button" data-edit-id="${meetingId}"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m13.8 3.8 2.4 2.4M3.5 16.5l3.8-.8L16 7a1.7 1.7 0 0 0-2.4-2.4L4.9 13.3l-1.4 3.2Z"/></svg><span>Chỉnh sửa</span></button>
-      <button class="delete-button" type="button" data-delete-id="${meetingId}"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 5.5h13m-11.5 0 .8 11h7.4l.8-11M7 5.5V3.8h6v1.7m-4 3v5m2-5v5"/></svg><span>Xóa</span></button>
+      <button class="btn" type="button" data-edit-id="${meetingId}"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m13.8 3.8 2.4 2.4M3.5 16.5l3.8-.8L16 7a1.7 1.7 0 0 0-2.4-2.4L4.9 13.3l-1.4 3.2Z"/></svg><span>Chỉnh sửa</span></button>
+      <button class="btn btn-danger" type="button" data-delete-id="${meetingId}"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 5.5h13m-11.5 0 .8 11h7.4l.8-11M7 5.5V3.8h6v1.7m-4 3v5m2-5v5"/></svg><span>Xóa</span></button>
     </div>`;
   ui.details.hidden = false;
   const rect = anchor.getBoundingClientRect();
@@ -271,7 +335,7 @@ function openMeetingDetails(id, anchor) {
 }
 
 async function deleteMeeting(id) {
-  if (!window.confirm('Bạn có chắc muốn xóa cuộc họp này khỏi lịch chung?')) return;
+  if (!window.confirm('Bạn có chắc muốn xóa cuộc họp này khỏi lịch?')) return;
   try {
     const response = await fetch(`/api/meetings/${encodeURIComponent(id)}`, { method: 'DELETE' });
     const result = await response.json();
@@ -288,15 +352,7 @@ async function deleteMeeting(id) {
 async function moveMeeting(id, updates) {
   const previous = state.meetings.find((meeting) => meeting.id === id);
   if (!previous) return;
-  const payload = {
-    title: previous.title,
-    date: updates.date || previous.date,
-    startTime: updates.startTime || previous.startTime,
-    endTime: updates.endTime || previous.endTime,
-    organizer: previous.organizer,
-    attendees: previous.attendees || [],
-    notes: previous.notes || '',
-  };
+  const payload = { ...previous, ...updates };
   try {
     const response = await fetch(`/api/meetings/${encodeURIComponent(id)}`, {
       method: 'PUT',
@@ -330,7 +386,20 @@ function shiftPeriod(amount) {
 }
 
 document.querySelector('#createMeeting').addEventListener('click', () => openModal());
-document.querySelector('#toolbarCreate').addEventListener('click', () => openModal());
+document.querySelector('.tabs').addEventListener('click', (event) => {
+  const tab = event.target.closest('[data-module]');
+  if (!tab) return;
+  state.module = tab.dataset.module;
+  ui.details.hidden = true;
+  render();
+});
+ui.people.addEventListener('click', (event) => {
+  const chip = event.target.closest('.chip');
+  if (!chip) return;
+  if (state.module === 'private') state.person = chip.dataset.person;
+  else state.room = chip.dataset.room;
+  render();
+});
 document.querySelector('#closeModal').addEventListener('click', closeModal);
 document.querySelector('#cancelModal').addEventListener('click', closeModal);
 ui.modal.addEventListener('click', (event) => { if (event.target === ui.modal) closeModal(); });
@@ -358,7 +427,12 @@ ui.calendarView.addEventListener('click', (event) => {
   const cell = event.target.closest('.month-cell');
   if (cell) {
     state.selectedDate = parseDate(cell.dataset.date);
-    openModal({ date: cell.dataset.date, startTime: '09:00', endTime: '10:00' });
+    return openModal({ date: cell.dataset.date, startTime: '09:00', endTime: '10:00' });
+  }
+  const column = event.target.closest('.day-column');
+  if (column) {
+    const start = Math.min(minutesAt(column, event.clientY), HOUR_END * 60 - 60);
+    openModal({ date: column.dataset.date, startTime: minutesToTime(start), endTime: minutesToTime(start + 60) });
   }
 });
 ui.calendarView.addEventListener('dragstart', (event) => {
@@ -394,11 +468,8 @@ ui.calendarView.addEventListener('drop', (event) => {
   if (cell) return moveMeeting(id, { date: cell.dataset.date });
   const meeting = state.meetings.find((item) => item.id === id);
   if (!meeting) return;
-  const rect = column.getBoundingClientRect();
-  const y = event.clientY - rect.top;
   const duration = toMinutes(meeting.endTime) - toMinutes(meeting.startTime);
-  const requestedStart = HOUR_START * 60 + Math.max(0, Math.floor(y / hourHeight() * 2) * 30);
-  const start = Math.min(Math.max(HOUR_START * 60, requestedStart), HOUR_END * 60 - duration);
+  const start = Math.min(minutesAt(column, event.clientY), HOUR_END * 60 - duration);
   return moveMeeting(id, { date: column.dataset.date, startTime: minutesToTime(start), endTime: minutesToTime(start + duration) });
 });
 ui.calendarView.addEventListener('keydown', (event) => {
@@ -423,6 +494,7 @@ document.addEventListener('click', (event) => {
 });
 document.addEventListener('keydown', (event) => { if (event.key === 'Escape') { closeModal(); ui.details.hidden = true; } });
 
+ui.roomInput.innerHTML = ROOMS.map((room) => `<option value="${room.id}">${room.name}</option>`).join('');
 render();
 loadMeetings();
 setInterval(refreshMeetings, 15000);

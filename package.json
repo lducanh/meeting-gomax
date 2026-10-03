@@ -5,5 +5,8 @@
   "description": "Shared meeting room calendar for GoMax Digital",
   "scripts": {
     "start": "node server.js"
+  },
+  "dependencies": {
+    "nodemailer": "^10.0.13"
   }
 }
