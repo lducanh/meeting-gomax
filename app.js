@@ -3,7 +3,8 @@ const HOUR_END = 20;
 const DAY_NAMES = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 // Người/nhóm luôn có sẵn ở tab Họp riêng; các tên khác tự xuất hiện sau lần đặt lịch đầu tiên.
 const DEFAULT_PEOPLE = ['BOD'];
-// Giữ id khớp với ROOMS trong server.js. Lịch cũ chưa có phòng được tính là phòng đầu tiên.
+// Giữ id khớp với ROOMS trong api.php. Lịch cũ chưa có phòng được tính là phòng đầu tiên.
+const API = 'api.php';
 const ROOMS = [{ id: 'tret', name: 'Phòng Trệt', short: 'Trệt' }, { id: 'tang2', name: 'Phòng Tầng 2', short: 'Tầng 2' }];
 const MONTH_NAMES = ['tháng 1', 'tháng 2', 'tháng 3', 'tháng 4', 'tháng 5', 'tháng 6', 'tháng 7', 'tháng 8', 'tháng 9', 'tháng 10', 'tháng 11', 'tháng 12'];
 
@@ -87,9 +88,14 @@ function assignLanes(meetings) {
   return placed;
 }
 
+// Chỉ dùng GET và POST vì nhiều hosting chặn PUT/DELETE.
+function postAction(action, data) {
+  return fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...data, action }) });
+}
+
 async function loadMeetings() {
   try {
-    const response = await fetch('/api/meetings');
+    const response = await fetch(API);
     if (!response.ok) throw new Error('Không tải được lịch.');
     state.meetings = await response.json();
     state.loading = false;
@@ -103,7 +109,7 @@ async function loadMeetings() {
 
 async function refreshMeetings() {
   try {
-    const response = await fetch('/api/meetings');
+    const response = await fetch(API);
     if (!response.ok) return;
     const latest = await response.json();
     if (JSON.stringify(latest) === JSON.stringify(state.meetings)) return;
@@ -277,8 +283,7 @@ async function saveMeeting(event) {
   ui.save.disabled = true;
   ui.save.querySelector('span').textContent = 'Đang lưu…';
   try {
-    const endpoint = state.editingId ? `/api/meetings/${encodeURIComponent(state.editingId)}` : '/api/meetings';
-    const response = await fetch(endpoint, { method: state.editingId ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const response = await postAction('save', { ...payload, id: state.editingId });
     const result = await response.json();
     if (!response.ok) return showFormError(result.error || 'Không thể lưu cuộc họp.');
     if (state.editingId) state.meetings = state.meetings.map((meeting) => meeting.id === result.id ? result : meeting);
@@ -337,7 +342,7 @@ function openMeetingDetails(id, anchor) {
 async function deleteMeeting(id) {
   if (!window.confirm('Bạn có chắc muốn xóa cuộc họp này khỏi lịch?')) return;
   try {
-    const response = await fetch(`/api/meetings/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    const response = await postAction('delete', { id });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'Không thể xóa cuộc họp.');
     state.meetings = state.meetings.filter((meeting) => meeting.id !== id);
@@ -354,11 +359,7 @@ async function moveMeeting(id, updates) {
   if (!previous) return;
   const payload = { ...previous, ...updates };
   try {
-    const response = await fetch(`/api/meetings/${encodeURIComponent(id)}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
+    const response = await postAction('save', payload);
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'Không thể chuyển cuộc họp.');
     state.meetings = state.meetings.map((meeting) => meeting.id === id ? result : meeting);

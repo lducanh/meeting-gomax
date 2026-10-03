@@ -1,4 +1,6 @@
-node_modules/
+config.php
 .env
+node_modules/
 data/meetings.json
 .DS_Store
+*.zip

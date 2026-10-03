@@ -1,0 +1,5 @@
+# Chặn tải trực tiếp dữ liệu lịch, cấu hình và tài liệu; trang chỉ cần index.html, app.js, styles.css, api.php và ảnh.
+<FilesMatch "\.(json|md|env|example)$|^config">
+  Require all denied
+</FilesMatch>
+RedirectMatch 404 /\.git

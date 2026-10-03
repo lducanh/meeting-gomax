@@ -1,35 +1,46 @@
 # Lịch họp GoMax Digital
 
-Ứng dụng lịch dùng chung, gồm hai tab: **Phòng họp** (Phòng Trệt và Phòng Tầng 2, lọc theo phòng, không cho trùng giờ trong cùng một phòng) và **Họp riêng** (hẹn lịch với BOD, sếp, quản lý hoặc nhân sự; lọc theo từng người, chỉ báo trùng khi cùng một người đã có lịch). Có chế độ xem ngày, tuần, tháng; tạo cuộc họp từ nút hoặc ô giờ; ghi người đăng ký, người tham dự và ghi chú; kéo thả để đổi lịch; sửa/xóa cuộc họp; tự kiểm tra lịch bị trùng.
+Ứng dụng lịch dùng chung, gồm hai tab: **Phòng họp** (Phòng Trệt và Phòng Tầng 2, lọc theo phòng, không cho trùng giờ trong cùng một phòng) và **Họp riêng** (hẹn lịch với BOD, sếp, quản lý hoặc nhân sự; lọc theo từng người, chỉ báo trùng khi cùng một người đã có lịch). Có chế độ xem ngày, tuần, tháng; tạo cuộc họp từ nút hoặc ô giờ; ghi người đăng ký, người tham dự và ghi chú; kéo thả để đổi lịch; sửa/xóa cuộc họp; gửi email mỗi khi có lịch mới.
 
-Giao diện theo design system GoMax Console: toàn bộ token (màu, chữ, khoảng cách, bo góc) nằm ở đầu `styles.css`. Danh sách người có sẵn ở tab Họp riêng là `DEFAULT_PEOPLE` trong `app.js`; tên khác tự xuất hiện sau lần đặt lịch đầu tiên.
+Giao diện là file tĩnh (`index.html`, `styles.css`, `app.js`); phần lưu lịch và gửi email là một file `api.php`, chạy được trên hosting PHP thông thường (cPanel, DirectAdmin), không cần Node, không cần cơ sở dữ liệu, không cần cài thư viện.
 
-## Chạy trong mạng công ty
+Giao diện theo design system GoMax Console: toàn bộ token (màu, chữ, khoảng cách, bo góc) nằm ở đầu `styles.css`. Danh sách người có sẵn ở tab Họp riêng là `DEFAULT_PEOPLE` trong `app.js`; tên khác tự xuất hiện sau lần đặt lịch đầu tiên. Danh sách phòng là `ROOMS`, khai báo ở cả `app.js` và `api.php`.
 
-1. Cài Node.js 18 trở lên trên máy chủ nội bộ.
-2. Tải dự án lên máy chủ và chạy `npm start`.
-3. Mọi người truy cập `http://<địa-chỉ-máy-chủ>:3000` bằng trình duyệt.
+## Đưa lên hosting
 
-Máy chủ ghi lịch vào `data/meetings.json` và cập nhật cho các trình duyệt đang mở sau tối đa 15 giây. Giữ máy chủ chạy để mọi người cùng xem và đặt lịch. Có thể đặt `PORT` để chọn cổng khác.
+1. Hosting cần PHP 7.4 trở lên.
+2. Upload toàn bộ file vào thư mục web (ví dụ `public_html` hoặc một thư mục con như `public_html/lich-hop`). Nhớ upload cả file ẩn `.htaccess`.
+3. Chép `config.example.php` thành `config.php` và điền thông tin email (xem bên dưới).
+4. Mở địa chỉ trang. Lần đầu chạy, `api.php` tự tạo `data/meetings.json`. Nếu báo không ghi được dữ liệu, đặt quyền ghi cho thư mục `data` (chmod 755 hoặc 775).
+
+Lịch lưu trong `data/meetings.json`; trang tự cập nhật cho các trình duyệt đang mở sau tối đa 15 giây. Sao lưu file này định kỳ. Khi cập nhật code, đừng ghi đè `data/meetings.json` và `config.php` trên hosting.
+
+## Tự deploy khi đẩy code lên GitHub
+
+`.github/workflows/deploy.yml` tự upload code lên hosting qua FTP mỗi lần đẩy lên nhánh `main`. Khai báo 4 secret trong GitHub (Settings → Secrets and variables → Actions → New repository secret):
+
+- `FTP_SERVER`: địa chỉ FTP của hosting (ví dụ `ftp.tenmien.com`).
+- `FTP_USERNAME`, `FTP_PASSWORD`: tài khoản FTP.
+- `FTP_DIR`: thư mục đích, kết thúc bằng dấu `/` (ví dụ `public_html/lich-hop/`).
+
+`config.php` và `data/meetings.json` không nằm trong git nên không bị ghi đè; tạo `config.php` trên hosting một lần bằng File Manager. Chưa khai báo secret thì workflow tự bỏ qua. Nếu hosting không hỗ trợ FTPS, đổi `protocol: ftps` thành `ftp` trong file workflow.
 
 ## Email thông báo lịch mới
 
-Mỗi lần có người tạo lịch, máy chủ gửi một email thông báo. Tạo file `.env` cạnh `server.js` (file này không đưa vào git):
+Cấu hình trong `config.php` (file này không đưa vào git):
 
-```
-SMTP_USER=dia-chi-gui@gmail.com
-SMTP_PASS=app-password-16-ky-tu
-NOTIFY_TO=dia-chi-nhan@gmail.com
-```
+- `notify_to`: địa chỉ nhận, nhiều địa chỉ cách nhau bằng dấu phẩy. Bỏ trống để tắt email.
+- `smtp_user`, `smtp_pass`: hộp thư dùng để gửi. Với Gmail, `smtp_pass` là App Password 16 ký tự tạo tại https://myaccount.google.com/apppasswords (cần bật Xác minh 2 bước), không phải mật khẩu đăng nhập.
+- Bỏ trống `smtp_user` và `smtp_pass` thì dùng hàm `mail()` có sẵn của hosting; thư kiểu này dễ vào Spam hơn.
+- Một số hosting chặn kết nối ra cổng 465. Khi đó thử `smtp_port` 587, hoặc dùng SMTP của chính hosting (`smtp_host`, `smtp_user`, `smtp_pass` của hộp thư tên miền).
 
-- `SMTP_PASS` là App Password của Gmail (Tài khoản Google → Bảo mật → Xác minh 2 bước → Mật khẩu ứng dụng), không phải mật khẩu đăng nhập.
-- `NOTIFY_TO` nhận nhiều địa chỉ cách nhau bằng dấu phẩy; bỏ trống thì gửi về chính `SMTP_USER`.
-- Hộp thư không phải Gmail: thêm `SMTP_HOST` và `SMTP_PORT`.
-- Cần Node.js 20.12 trở lên để đọc `.env`, chạy `npm install` một lần, và máy chủ phải ra được internet qua cổng 465.
-- Thiếu `SMTP_USER` hoặc `SMTP_PASS` thì tính năng tự tắt; gửi lỗi chỉ ghi log, lịch vẫn được lưu.
+Gửi lỗi không ảnh hưởng việc đặt lịch; lỗi được ghi vào error log của PHP trên hosting.
 
-## Lưu ý triển khai
+## Bảo mật
 
-Máy chủ và tệp dữ liệu cần nằm trên một máy nội bộ luôn hoạt động để lịch được chia sẻ ổn định. Sao lưu `data/meetings.json` định kỳ nếu đây là lịch sử dụng chính thức.
+- `.htaccess` chặn tải trực tiếp `data/meetings.json`, `config.php` và các file tài liệu. File này chỉ có tác dụng trên Apache hoặc LiteSpeed; hosting chỉ chạy Nginx cần cấu hình chặn tương đương.
+- Chưa có đăng nhập hoặc phân quyền: ai có địa chỉ trang đều xem, tạo và xóa lịch được. Nếu trang mở ra internet, nên bật "Password Protect Directory" trong bảng điều khiển hosting hoặc đặt ở địa chỉ khó đoán.
 
-Phiên bản đầu chưa có đăng nhập hoặc phân quyền: người truy cập được địa chỉ máy chủ đều có thể tạo và xóa cuộc họp. Vì vậy, chỉ nên chia sẻ trong mạng nội bộ công ty.
+## Chạy thử trên máy
+
+Cần PHP: `php -S localhost:3000` trong thư mục dự án rồi mở `http://localhost:3000`. Máy chủ thử của PHP không đọc `.htaccess`.
